@@ -1,55 +1,67 @@
-const request = require('supertest')
-const db = require('../data/dbConfig')
-const server = require('./server.js')
+const request = require('supertest');
+const server = require('./server');
+const db = require('../data/dbConfig');
 
-describe('Jokes Auth', () => {
+const testingData = {username: 'name', password: 'pass'}
 
-  beforeAll(async () => {
-    await db.migrate.rollback();
-    await db.migrate.latest();
+beforeAll(async () => {
+  await db.migrate.rollback();
+  await db.migrate.latest();
+})
+
+afterAll(async () => {
+  await db.migrate.rollback();
+  await db.migrate.latest();
+})
+
+
+test('sanity', () => {
+  expect(true).toBe(true)
+})
+
+describe('server.js', () => {
+
+  describe('[GET]/api/jokes', () => {
+
+    it('should return 401', async () => {
+      const res = await request(server).get('/api/jokes')
+    expect(res.status).toBe(401);
+    });
+
+  });
+})
+
+describe('[POST] /api/auth/register', () => {
+
+  it('valid request returning status: 201', async () => {
+    await db('users').truncate()
+    const res = await request(server)
+      .post('/api/auth/register')
+      .send(testingData);
+    expect(res.status).toBe(201)
   })
 
-  afterAll(async () => {
-    await db.destroy();
+  it('invalid request returning status: 422', async () => {
+    const res = await request(server)
+      .post('/api/auth/register')
+      .send(testingData);
+    expect(res.status).toBe(422)
+  })
+});
+
+describe('[POST]/api/auth/login', () => {
+
+  it('returns status: 200 when valid credentials are provided', async () => {
+    const res = await request(server)
+      .post('/api/auth/login')
+      .send(testingData);
+    expect(res.status).toBe(200)
   })
 
-  describe('[POST] /register', () => {
-
-    it(`returns error if no username in body`, async () => {
-
-      const res = await request(server).post('/api/auth/register').send({ username: "Charlie"})
-
-      expect(res.body).toMatchObject({message: "username and password required"})
-    })
-
-    it(`adds new user to databse`, async () => {
-
-      const res = await request(server).post('/api/auth/register').send({ username: "Charlie", password: "Clown"})
-
-      expect(res.body).toMatchObject({id: 1, username: "Charlie", password: expect.any(String)})
-    })
-
+  it('invalid payload with error message of : Invalid credentials', async () => {
+    const res = await request(server)
+    .post('/api/auth/login')
+    .send({ username: 'Candace', password: 'n/a' })
+    expect(res.status).toBe(422)
   })
-
-  describe('[POST] /login', () => {
-
-    it('does not login if password does not match', async () => {
-
-      const userLogin = await request(server).post('/api/auth/login').send({ username: "Charlie", password: "cown"})
-
-      expect(userLogin.body).toMatchObject({ message: "invalid credentials" })
-
-    })
-
-    it('logs user in and sends back welcome message', async () => {
-
-      const userLogin = await request(server).post('/api/auth/login').send({ username: "Charlie", password: "Clown"})
-
-      expect(userLogin.body).toHaveProperty('message', "welcome, Charlie")
-
-    })
-
-  })
-
-
 })
