@@ -1,57 +1,54 @@
-const Users = require('../users/users-model')
-const bcrypt = require('bcryptjs')
+const db = require('./auth-model')
 
-const checkCredentials = (req, res, next) => {
-    if(!req.body.username || !req.body.password) {
-        res.status(500).json({ message: "username and password required"})
-    } else {
+const checkUsernameExists = async(req, res, next) => {
+    console.log(req.body.username)
+    try{
+        const [user] = await db.findBy({username: req.body.username})
+        console.log(user)
+        if(user){
+            next({status: 422, message: "username taken"})
+        }//end of if
 
-        next()
-    }
-}
-
-const checkUsernameAvailable = async (req, res, next) => {
-    const { username } = req.body
-
-    try {
-        let validUser = await Users.findBy({ username: username })
-
-        if(validUser) {
-            res.status(500).json({ message: "username taken" })
-        } else {
+        else{
+            req.user = user
             next()
         }
-    } catch(err) {
 
+    }//end of try
+    catch(err){
         next(err)
-    }
+      }
+
 }
+const validateUserExist = async(req, res, next) => {
+    console.log(req.body.username)
+    try{
+        const [user] = await db.findBy({username: req.body.username})
+        console.log(user)
+        if(!user){
+            next({status: 422, message: "Invalid credentials"})
+        }//end of if
 
-const checkUserRegistered = async (req, res, next) => {
-
-    let { username, password } = req.body
-
-    try {
-
-        let validUser = await Users.findBy({ username: username })
-
-        if(!validUser) {
-            next({status: 400, message: "invalid credentials"})
-        } else {
-            if(validUser && bcrypt.compareSync(password, validUser.password)) {
-                next()
-            } else {
-                next({status: 400, message: "invalid credentials"})
-            }
+        else{
+            req.user = user
+            next()
         }
-    }
-    catch(err) {
+
+    }//end of try
+    catch(err){
         next(err)
-    }
+      }
+
 }
 
-module.exports = {
-    checkCredentials,
-    checkUsernameAvailable,
-    checkUserRegistered
+const checkBodyValidation = (req,res,next)=>{
+    if(!req.body.username || !req.body.password){
+        next({status: 422, message: "username and password required"})
+    }else{next()}
+
 }
+module.exports ={
+    checkUsernameExists,
+    checkBodyValidation,
+    validateUserExist
+} 

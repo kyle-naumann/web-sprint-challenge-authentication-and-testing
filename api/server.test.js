@@ -61,7 +61,7 @@ describe('[POST]/api/auth/login', () => {
   it('invalid payload with error message of : Invalid credentials', async () => {
     const res = await request(server)
     .post('/api/auth/login')
-    .send({ username: 'Candace', password: 'n/a' })
+    .send({ username: 'Charlie', password: 'n/a' })
     expect(res.status).toBe(422)
   })
 })
